@@ -1,5 +1,10 @@
-/* Adds a configuration file into the directory of the file being shared,
-   identifies user access to the file  */
+/*  Erik Safford
+    SetUID File Transfer(copy) System
+    CS 426                            
+
+    Adds a configuration file into the directory of the file being shared,
+    identifies user access to the file  
+*/
 
 #include <stdio.h>
 #include <stdlib.h>
