@@ -17,16 +17,17 @@
       
        (Assume that Bob can't read /home/alice/dailyschedule.txt directly)
 */
-#define _POSIX_SOURCE
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <sys/types.h>
 #define FILEPATH_SIZE 100
 #define FILELINE_SIZE 100
 
 char *getlogin(void);
+int seteuid(uid_t uid);
 
 int main(int argc, char *argv[]) {
     //Check for valid command line arguments
@@ -99,9 +100,13 @@ int main(int argc, char *argv[]) {
     //Else the user has read/both permission to the file, commence copying of the file
     else {
         printf("File copying good to go!\n");
+        fclose(fp);
+        
+        seteuid(1000);
+        // printf("Real user id = %d, Effective User id = %d\n",getuid(),geteuid());
     }
 
-    fclose(fp);
+    //fclose(fp);
     
     return(0);
 }
