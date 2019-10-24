@@ -8,46 +8,52 @@
 #define FILEPATH_SIZE 100
 #define FILELINE_SIZE 100
 
+//Create config filepath (add .acl to the end of given path)
+char *addAcl(char *filepath) {
+    static char configPath[FILEPATH_SIZE];
+    strcpy(configPath, filepath);
+    printf("Filepath before: %s\n", configPath);
+    strcat(configPath, ".acl");
+    printf("Filepath after: %s\n", configPath);
+    return(configPath);
+}
+
 int main(int argc, char *argv[]) {
     //If only a filepath is given, create blank config file with no permissions
     if(argc == 2) {
         FILE *fp = NULL;
-        char filepath[FILEPATH_SIZE];
+        char *filepath = malloc(sizeof(char) * FILEPATH_SIZE);
         
-        //First command line arg is the filepath of the file to be copied
-        strcpy(filepath, argv[1]);  
-        printf("Filepath before: %s\n",filepath);
+        //Second command line arg is the filepath of the file to be copied
         //Add .acl to the filepath (path of new config file)
-        strcat(filepath, ".acl");  
-        printf("Filepath after: %s\n",filepath);
+        filepath = addAcl(argv[1]);
         
         //Attempt to create config file or open it if it already exists
         if( (fp = fopen(filepath, "a+")) == NULL) {
             perror("Error creating config file");
+            free(filepath);
             exit(1);
         }
 
         //Print contents of the config file
         char line[FILELINE_SIZE];
-        printf("Created %s which now contains:\n", filepath);
+        printf("\n%s now contains:\n", filepath);
         while(fgets(line, sizeof(line), fp) != NULL) {
             printf(line,"\n");
         }
         printf("\nRun with 4 command line arguments to add user permissions\n");
         printf("Proper format is ./addConfig filepath_of_file_to_be_copied username permission\n");
         fclose(fp);
+        free(filepath);
     }
     //Else if a filepath is given with included username and permission to add
     else if(argc == 4) {
         FILE *fp = NULL;
-        char filepath[FILEPATH_SIZE];
+        char *filepath = malloc(sizeof(char) * FILEPATH_SIZE);
         
         //Second command line arg is the filepath of the file to be copied
-        strcpy(filepath, argv[1]);  
-        printf("Filepath before: %s\n",filepath);
         //Add .acl to the filepath (path of new config file)
-        strcat(filepath, ".acl");  
-        printf("Filepath after: %s\n",filepath);
+        filepath = addAcl(argv[1]);
         //Third command line arg is the username of the user to give permissions to
         char *username = argv[2];
         //Fourth command line arg is the permission to give to the user of the file (r=read, w=write, b=both)
@@ -55,6 +61,7 @@ int main(int argc, char *argv[]) {
         //Check to make sure permission is read, write, or both
         if(strcmp(permission, "r") != 0 && strcmp(permission, "w") != 0 && strcmp(permission, "b") != 0) {
             fprintf(stderr, "Error: Invalid specified permission, must be r (read), w (write), or b (both)\n");
+            free(filepath);
             exit(1);
         }
         printf("Attempting to add '%s' to the config file with '%s' permission\n", username, permission);
@@ -62,6 +69,7 @@ int main(int argc, char *argv[]) {
         //Attempt to create config file or open it if it already exists
         if( (fp = fopen(filepath, "a+")) == NULL) {  //Open file with reading/appending at end of file (a+)
             perror("Error creating config file");
+            free(filepath);
             exit(1);
         }
 
@@ -72,10 +80,11 @@ int main(int argc, char *argv[]) {
         char line[FILELINE_SIZE];
         rewind(fp);  //Reset fp to beginning of the file
         printf("\n%s now contains:\n", filepath);
-        while(fgets(line, sizeof(line), fp) != NULL) {
+        while(fgets(line, sizeof(line), fp) != NULL) {  //Reads until \n or EOF
             printf(line,"\n");
         }
         fclose(fp);
+        free(filepath);
     }
     //Else incorrect amount of command line arguments
     else {
