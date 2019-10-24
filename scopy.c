@@ -17,6 +17,8 @@
       
        (Assume that Bob can't read /home/alice/dailyschedule.txt directly)
 */
+// #define _GNU_SOURCE
+// #define _POSIX1_SOURCE 2
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -27,7 +29,7 @@
 #define FILELINE_SIZE 100
 
 char *getlogin(void);
-int seteuid(uid_t uid);
+// int seteuid(uid_t uid);
 
 int main(int argc, char *argv[]) {
     //Check for valid command line arguments
@@ -102,7 +104,15 @@ int main(int argc, char *argv[]) {
         printf("File copying good to go!\n");
         fclose(fp);
         
-        seteuid(1000);
+        printf("your effective user id is %d\n", (int) geteuid());
+
+        if(seteuid(1000) != 0) {
+            perror("seteuid() error");
+            exit(1);
+        }
+        else {
+            printf("your effective user id was changed to %d\n", (int) geteuid());
+        }
         // printf("Real user id = %d, Effective User id = %d\n",getuid(),geteuid());
     }
 
