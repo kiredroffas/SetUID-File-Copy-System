@@ -24,6 +24,7 @@
 #include <unistd.h>
 #include <errno.h>
 #define FILEPATH_SIZE 100
+#define FILELINE_SIZE 100
 
 char *getlogin(void);
 
@@ -38,7 +39,6 @@ int main(int argc, char *argv[]) {
     //Get file to access and filename copy to be made from command line
     char protected_file[FILEPATH_SIZE];
     char copy_to_be_made[FILEPATH_SIZE];
-
     strcpy(protected_file, argv[1]);
     printf("protected file to be accessed: %s\n", protected_file);
     strcpy(copy_to_be_made, argv[2]);
@@ -52,5 +52,56 @@ int main(int argc, char *argv[]) {
     } 
     printf("user attempting to copy file is: %s\n", username);
 
+    //Open .acl configuration file to check for active user read permissions
+    FILE *fp = NULL;
+    char configFile[FILELINE_SIZE];
+    strcpy(configFile, protected_file);
+    strcat(configFile, ".acl");
+
+    if( (fp = fopen(configFile, "r")) == NULL) {
+        perror("Error opening .acl configuration file");
+        fprintf(stderr, "%s could not be accessed\n", configFile);
+        exit(1);
+    }
+    printf("%s opened successfully\n", configFile);
+
+    //Search .acl file for username's file permission (r, w, b)
+    char line[FILELINE_SIZE];
+    char read[FILELINE_SIZE]; char write[FILELINE_SIZE]; char both[FILELINE_SIZE];
+    strcpy(read, username);
+    strcat(read, " r\n");
+    strcpy(write, username);
+    strcat(write, " w\n");
+    strcpy(both, username);
+    strcat(both, " b\n");
+    printf("Looking for:\n %s %s or %s in .acl config file\n\n", read, write, both);
+
+    printf(".acl config file contains: \n");
+    int access = 0;  //0 = false, 1 = true
+    //Read/compare each line from .acl file
+    while(fgets(line, sizeof(line), fp) != NULL) { 
+        printf(line);
+        if(strcmp(line, read) == 0 || strcmp(line, both) == 0) {
+            printf("Matching config username found: %s", line);
+            int permissionIndex = strlen(username) + 1;
+            printf("User '%s' has permission '%c'\n", username, line[permissionIndex]);
+            access = 1;
+            break;
+        }
+    }
+
+    //If the user's username was not found to have valid read/both permission in the .acl config file
+    if(access == 0) {
+        fprintf(stderr, "%s does not have valid permissions to copy this file\n", username);
+        fclose(fp);
+        exit(1);
+    }
+    //Else the user has read/both permission to the file, commence copying of the file
+    else {
+        printf("File copying good to go!\n");
+    }
+
+    fclose(fp);
+    
     return(0);
 }
