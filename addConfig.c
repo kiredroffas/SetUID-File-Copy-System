@@ -10,6 +10,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #define FILEPATH_SIZE 100
 #define FILELINE_SIZE 100
 
@@ -30,11 +31,18 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
+        //chmod config file so only owner has read/write access (protect from 3rd parties)
+        if(chmod(filepath, S_IRUSR | S_IWUSR) != 0) {
+            perror("config file chmod error");
+            fclose(fp);
+            exit(1);
+        }
+
         //Print contents of the config file
         char line[FILELINE_SIZE];
         printf("\n%s now contains:\n", filepath);
         while(fgets(line, sizeof(line), fp) != NULL) {
-            printf(line);
+            printf("%s", line);
         }
         printf("\nRun with 4 command line arguments to add user permissions\n");
         printf("Proper format is ./addConfig filepath_of_file_to_be_copied username permission\n");
@@ -66,6 +74,13 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
 
+        //chmod config file so only owner has read/write access (protect from 3rd parties)
+        if(chmod(filepath, S_IRUSR | S_IWUSR) != 0) {
+            perror("config file chmod error");
+            fclose(fp);
+            exit(1);
+        }
+
         //Add new username and permission to end of config file
         fprintf(fp, "%s %s\n", username, permission);
         
@@ -74,7 +89,7 @@ int main(int argc, char *argv[]) {
         rewind(fp);  //Reset fp to beginning of the file
         printf("\n%s now contains:\n", filepath);
         while(fgets(line, sizeof(line), fp) != NULL) {  //Reads until \n or EOF
-            printf(line);
+            printf("%s", line);
         }
         fclose(fp);
     }

@@ -17,8 +17,10 @@
       
        (Assume that Bob can't read /home/alice/dailyschedule.txt directly)
 */
-// #define _GNU_SOURCE
-// #define _POSIX1_SOURCE 2
+// Notes: 
+// sudo login kired
+// ./scopy /home/erik/Documents/SetUID-File-Copy-System/filecopy.haha filecopy.txt
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -29,7 +31,6 @@
 #define FILELINE_SIZE 100
 
 char *getlogin(void);
-// int seteuid(uid_t uid);
 
 int main(int argc, char *argv[]) {
     //Check for valid command line arguments
@@ -83,7 +84,7 @@ int main(int argc, char *argv[]) {
     int access = 0;  //0 = false, 1 = true
     //Read/compare each line from .acl file
     while(fgets(line, sizeof(line), fp) != NULL) { 
-        printf(line);
+        printf("%s", line);
         if(strcmp(line, read) == 0 || strcmp(line, both) == 0) {
             printf("Matching config username found: %s", line);
             int permissionIndex = strlen(username) + 1;
@@ -104,19 +105,67 @@ int main(int argc, char *argv[]) {
         printf("File copying good to go!\n");
         fclose(fp);
         
-        printf("your effective user id is %d\n", (int) geteuid());
+        int EUID = (int) geteuid();
+        int RUID = (int) getuid();
+        int RGID = (int) getgid();
+        printf("your effective user id is %d\n", EUID);
+        printf("your real user id is %d\n", RUID);
+        printf("your real group id is: %d\n", RGID);
 
-        if(seteuid(1000) != 0) {
+        //Ensure that effective UID of user is set to real UID of file (UID of owner)
+        if(seteuid((int) geteuid()) != 0) {
             perror("seteuid() error");
             exit(1);
         }
         else {
             printf("your effective user id was changed to %d\n", (int) geteuid());
         }
-        // printf("Real user id = %d, Effective User id = %d\n",getuid(),geteuid());
-    }
+        
+        //Attempt to open the protected file that only owner has access to
+        if( (fp = fopen(protected_file, "r")) == NULL) {
+            perror("Error opening protected file: %s\n");
+            fprintf(stderr, "%s could not be accessed\n", protected_file);
+            fprintf(stderr, "before: EUID: %d RUID: %d\n", EUID, RUID);
+            fprintf(stderr, "after: EUID: %d RUID: %d\n", (int) geteuid(), (int) getuid());
+            exit(1);
+        }
+        printf("protected file %s opened successfully\n", protected_file);
+        
+        //Copy file into local directory as specified copy file name
+        FILE *copy = NULL;
+        char cpFilepath[256];
+        if (getcwd(cpFilepath, sizeof(cpFilepath)) == NULL) {
+            perror("getcwd() error, file could not be copied");
+            exit(1);
+        }
+        else {
+            printf("current working directory is: %s\n", cpFilepath);
+        }
+        //Create filepath for file copy (in the local directory)
+        strcat(cpFilepath, "/");
+        strcat(cpFilepath, copy_to_be_made);
+        printf("copy filepath to be made: %s\n", cpFilepath);
+        
+        //Attempt to create the copy of the file and read contents into it
+        copy = fopen(cpFilepath, "w");
+        while(fgets(line, sizeof(line), fp) != NULL) { 
+            printf("copying: %s", line);
+            fprintf(copy, "%s", line);
+        }
+        fclose(fp);
+        fclose(copy);
 
-    //fclose(fp);
+        //Set the effective UID of the user back to original real UID of user (not owner of file)
+        if(seteuid(RUID) != 0) {
+            perror("seteuid() error");
+            exit(1);
+        }
+        else {
+            printf("your effective user id was changed back to %d\n", RUID);
+        }
+
+        printf("file %s copied to %s successfully\n", protected_file, cpFilepath);
+    }
     
     return(0);
 }
