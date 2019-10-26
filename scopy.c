@@ -20,6 +20,8 @@
 // Notes: 
 // sudo login kired
 // ./scopy /home/erik/Documents/SetUID-File-Copy-System/filecopy.haha filecopy.txt
+// test .acl symlink: ./scopy /home/erik/Documents/SetUID-File-Copy-System/junklink filecopy.txt
+// test fileToBeCopy symlink: ./scopy /home/erik/Documents/SetUID-File-Copy-System/junkk junkktest
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,10 +29,36 @@
 #include <unistd.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #define FILEPATH_SIZE 100
 #define FILELINE_SIZE 100
 
 char *getlogin(void);
+
+//Check a specified filepath for regular file/sumbolic link
+int checkReg(char *filepath) {
+    struct stat buf;
+    int x;
+    
+    //Get information about the file with lstat()
+    if((x = lstat(filepath, &buf)) != 0) {
+        perror("lstat() error, file could not be checked for symlink");
+        exit(1);
+    }
+
+    //Check lstat() information to see if file is regular readable file or symlink
+    if(S_ISLNK(buf.st_mode)) {
+        fprintf(stderr, "Error: file is a symbolic link\n");
+        exit(1);
+    }
+    else if(S_ISREG(buf.st_mode)) {
+        return(1); //return true if file is regular, exit otherwise
+    }
+    else {
+        fprintf(stderr, "Error: file is not a regular file\n");
+        exit(1);
+    }
+}
 
 int main(int argc, char *argv[]) {
     //Check for valid command line arguments
@@ -41,14 +69,14 @@ int main(int argc, char *argv[]) {
     }
 
     //Get file to access and filename copy to be made from command line
-    char protected_file[FILEPATH_SIZE];
-    char copy_to_be_made[FILEPATH_SIZE];
-    strcpy(protected_file, argv[1]);
-    printf("protected file to be accessed: %s\n", protected_file);
-    strcpy(copy_to_be_made, argv[2]);
-    printf("copy of protected file to be made: %s\n", copy_to_be_made);
+    char protectedFile[FILEPATH_SIZE];
+    char copyToBeMade[FILEPATH_SIZE];
+    strcpy(protectedFile, argv[1]);
+    printf("protected file to be accessed: %s\n", protectedFile);
+    strcpy(copyToBeMade, argv[2]);
+    printf("copy of protected file to be made: %s\n", copyToBeMade);
 
-    //Get username of the user to check permission for in local file access control list
+    //Get username of the user to check permission for in local .acl config file
     char *username;
     if( (username = getlogin()) == NULL) {
         perror("error getting username of user");
@@ -56,12 +84,22 @@ int main(int argc, char *argv[]) {
     } 
     printf("user attempting to copy file is: %s\n", username);
 
-    //Open .acl configuration file to check for active user read permissions
+    //Create filepath of file to be copied's .acl config file
     FILE *fp = NULL;
     char configFile[FILELINE_SIZE];
-    strcpy(configFile, protected_file);
+    strcpy(configFile, protectedFile);
     strcat(configFile, ".acl");
 
+    //Ensure that the filepath of the .acl configFile is not a symbolic link
+    int isReg = 0;
+    printf("checking if %s is a regular file...\n", configFile);
+    if( (isReg = checkReg(configFile)) != 1) {
+        fprintf(stderr,"checkReg(configFile) error\n");
+        exit(1);
+    }
+    printf("%s is regular file, attempting to open for reading\n", configFile);
+
+    //Attempt to open .acl configuration file to check for active user read permissions
     if( (fp = fopen(configFile, "r")) == NULL) {
         perror("Error opening .acl configuration file");
         fprintf(stderr, "%s could not be accessed\n", configFile);
@@ -78,11 +116,11 @@ int main(int argc, char *argv[]) {
     strcat(write, " w\n");
     strcpy(both, username);
     strcat(both, " b\n");
-    printf("Looking for:\n %s %s or %s in .acl config file\n\n", read, write, both);
-
+    printf("Looking for:\n %s or %s in .acl config file\n\n", read, both);
+    
+    //Read/compare each line from .acl file to verify if user has access to file
+    int access = 0;  //0 = false (default), 1 = true
     printf(".acl config file contains: \n");
-    int access = 0;  //0 = false, 1 = true
-    //Read/compare each line from .acl file
     while(fgets(line, sizeof(line), fp) != NULL) { 
         printf("%s", line);
         if(strcmp(line, read) == 0 || strcmp(line, both) == 0) {
@@ -121,15 +159,24 @@ int main(int argc, char *argv[]) {
             printf("your effective user id was changed to %d\n", (int) geteuid());
         }
         
+        //Ensure that the filepath of the file to be copied is not a symbolic link
+        isReg = 0;
+        printf("checking if %s is a regular file...\n", protectedFile);
+        if( (isReg = checkReg(protectedFile)) != 1) {
+            fprintf(stderr,"checkReg(configFile) error\n");
+            exit(1);
+        }
+        printf("%s is regular file, attempting to open for reading\n", protectedFile);
+
         //Attempt to open the protected file that only owner has access to
-        if( (fp = fopen(protected_file, "r")) == NULL) {
+        if( (fp = fopen(protectedFile, "r")) == NULL) {
             perror("Error opening protected file: %s\n");
-            fprintf(stderr, "%s could not be accessed\n", protected_file);
+            fprintf(stderr, "%s could not be accessed\n", protectedFile);
             fprintf(stderr, "before: EUID: %d RUID: %d\n", EUID, RUID);
             fprintf(stderr, "after: EUID: %d RUID: %d\n", (int) geteuid(), (int) getuid());
             exit(1);
         }
-        printf("protected file %s opened successfully\n", protected_file);
+        printf("protected file %s opened successfully\n", protectedFile);
         
         //Copy file into local directory as specified copy file name
         FILE *copy = NULL;
@@ -143,7 +190,7 @@ int main(int argc, char *argv[]) {
         }
         //Create filepath for file copy (in the local directory)
         strcat(cpFilepath, "/");
-        strcat(cpFilepath, copy_to_be_made);
+        strcat(cpFilepath, copyToBeMade);
         printf("copy filepath to be made: %s\n", cpFilepath);
         
         //Attempt to create the copy of the file and read contents into it
@@ -164,7 +211,7 @@ int main(int argc, char *argv[]) {
             printf("your effective user id was changed back to %d\n", RUID);
         }
 
-        printf("file %s copied to %s successfully\n", protected_file, cpFilepath);
+        printf("file %s copied to %s successfully\n", protectedFile, cpFilepath);
     }
     
     return(0);
