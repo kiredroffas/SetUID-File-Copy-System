@@ -35,7 +35,7 @@
 
 char *getlogin(void);
 
-//Check a specified filepath for regular file/sumbolic link
+//Check a specified filepath for regular file/symbolic link
 int checkReg(char *filepath) {
     struct stat buf;
     int x;
@@ -84,7 +84,7 @@ int main(int argc, char *argv[]) {
     } 
     printf("user attempting to copy file is: %s\n", username);
 
-    //Create filepath of file to be copied's .acl config file
+    //Create .acl filepath of file to be copied's config file
     FILE *fp = NULL;
     char configFile[FILELINE_SIZE];
     strcpy(configFile, protectedFile);
@@ -113,7 +113,7 @@ int main(int argc, char *argv[]) {
     strcpy(read, username);
     strcat(read, " r\n");
     strcpy(write, username);
-    strcat(write, " w\n");
+    strcat(write, " w\n");   //'user w' not used, but could have future implementation
     strcpy(both, username);
     strcat(both, " b\n");
     printf("Looking for:\n %s or %s in .acl config file\n\n", read, both);
@@ -194,7 +194,10 @@ int main(int argc, char *argv[]) {
         printf("copy filepath to be made: %s\n", cpFilepath);
         
         //Attempt to create the copy of the file and read contents into it
-        copy = fopen(cpFilepath, "w");
+        if( (copy = fopen(cpFilepath, "w")) == NULL) {
+            perror("copy filepath fopen() error");
+            exit(1);
+        }
         while(fgets(line, sizeof(line), fp) != NULL) { 
             printf("copying: %s", line);
             fprintf(copy, "%s", line);
