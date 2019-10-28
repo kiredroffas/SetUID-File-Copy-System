@@ -28,6 +28,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <errno.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #define FILEPATH_SIZE 100
@@ -107,21 +108,73 @@ int main(int argc, char *argv[]) {
     }
     printf("%s opened successfully\n", configFile);
 
-    //Search .acl file for username's file permission (r, w, b)
+    //Ensure that the opened .acl config file contains no invalid entries
     char line[FILELINE_SIZE];
+    while(fgets(line, sizeof(line), fp) != NULL) {
+        printf("checking: %s", line);
+
+        //find the index of the space and count of spaces/newline in the line to determine how long username is
+        int spaceIndex = -1;
+        int spaceCount = 0;
+        for(int i = 0; i < strlen(line); i++) {
+            if(isspace(line[i]) != 0) {  //If the char in the line is a space or \n
+                if(spaceIndex == -1) {
+                    spaceIndex = i;  //Only want to save the first occuring single space
+                }
+                spaceCount++;  //space count will keep track of space and \n
+            }
+        }
+        printf("space index: %d, space count: %d\n", spaceIndex, spaceCount);
+        //isspace() should return true twice for the single space and the \n
+        if(spaceCount != 2) {
+            fprintf(stderr, ".acl config file line '%s' contains invalid entries (too many/few spaces)\n", line);
+            exit(1);
+        }
+        
+        //check to make sure username (before the single space) contains only alphanumeric characters
+        for(int i = 0; i < spaceIndex; i++) {
+            printf("i = %d\n", i);
+            if(isalnum(line[i]) == 0) {  //If a char in the line is not a alphanumeric character, error
+                fprintf(stderr, ".acl config file line '%s' contains invalid entries (non-alphanumeric username)\n", line);
+                exit(1);
+            }
+        }
+        
+        //check to make sure that after the single space is a valid r, w, or b followed by a \n
+        printf("strlen %d\n", (int)strlen(line));
+        if(line[strlen(line)-2] != 'r' && line[strlen(line)-2] != 'w' && line[strlen(line)-2] != 'b') {
+            fprintf(stderr, ".acl config file line '%s' contains invalid entries (invalid permission/spacing)\n", line);
+            exit(1);
+        }
+        if(line[strlen(line)-1] != '\n') {
+            fprintf(stderr, ".acl config file line '%s' contains invalid entries (missing newline)\n", line);
+            exit(1);
+        }
+
+        //check if there is garbage between the single space and the read permission/newline
+        //Ex: user w\n     -> strlen = 7, spaceIndex = 4    -> difference of 3         -> valid
+        //Ex: user d%s2w\n -> strlen = 11, spaceIndex = 4   -> difference other then 3 -> invalid
+        if(strlen(line) - spaceIndex != 3) {
+            fprintf(stderr, ".acl config file line '%s' contains invalid entries (garbage before permission/invalid spacing)\n", line);
+            exit(1);
+        }
+    }
+
+    //Search .acl file for username's file permission (r, w, b)
     char read[FILELINE_SIZE]; char write[FILELINE_SIZE]; char both[FILELINE_SIZE];
     strcpy(read, username);
     strcat(read, " r\n");
     strcpy(write, username);
-    strcat(write, " w\n");   //'user w' not used, but could have future implementation
+    strcat(write, " w\n");  
     strcpy(both, username);
     strcat(both, " b\n");
     printf("Looking for:\n %s or %s in .acl config file\n\n", read, both);
-    
-    //Read/compare each line from .acl file to verify if user has access to file
+
     int access = 0;  //0 = false (default), 1 = true
+    rewind(fp);  //rewind file pointer to beginning of file
     printf(".acl config file contains: \n");
     while(fgets(line, sizeof(line), fp) != NULL) { 
+        //Read/compare each line from .acl file to verify if user has access to file
         printf("%s", line);
         if(strcmp(line, read) == 0 || strcmp(line, both) == 0) {
             printf("Matching config username found: %s", line);
