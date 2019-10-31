@@ -20,8 +20,9 @@
 // Notes: 
 // sudo login kired
 // ./scopy /home/erik/Documents/SetUID-File-Copy-System/filecopy.haha filecopy.txt
-// test .acl symlink: ./scopy /home/erik/Documents/SetUID-File-Copy-System/junklink filecopy.txt
-// test fileToBeCopy symlink: ./scopy /home/erik/Documents/SetUID-File-Copy-System/junkk junkktest
+// ../erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/filecopy.haha filecopy.txt
+// test .acl symlink: ../erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/junklink filecopy.txt
+// test fileToBeCopy symlink: ../erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/junkk junkktest
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -62,6 +63,23 @@ int checkReg(char *filepath) {
 }
 
 int main(int argc, char *argv[]) {
+    //Store effective (Alice) and real (Bob) UID's for later seteuid() use
+    int EUID = (int) geteuid();
+    int RUID = (int) getuid();
+    int RGID = (int) getgid();
+    printf("your effective user id is %d\n", EUID);
+    printf("your real user id is %d\n", RUID);
+    printf("your real group id is: %d\n", RGID);
+
+    //Set the effective UID of user to real UID of user (Bob), initially set to Alice
+    if(seteuid(RUID) != 0) {
+        perror("seteuid() error");
+        exit(1);
+    }
+    else {
+        printf("your effective user id was changed to %d\n", RUID);
+    }
+    
     //Check for valid command line arguments
     if(argc < 3) {
         fprintf(stderr, "Error: Invalid number of command line arguments\n");
@@ -91,6 +109,15 @@ int main(int argc, char *argv[]) {
     strcpy(configFile, protectedFile);
     strcat(configFile, ".acl");
 
+    //Since Alice is owner of .acl config file, must seteuid() back to Alice to lstat()/fopen()
+    if(seteuid(EUID) != 0) {
+        perror("seteuid() error");
+        exit(1);
+    }
+    else {
+        printf("your effective user id was changed to %d\n", EUID);
+    }
+
     //Ensure that the filepath of the .acl configFile is not a symbolic link
     int isReg = 0;
     printf("checking if %s is a regular file...\n", configFile);
@@ -107,6 +134,15 @@ int main(int argc, char *argv[]) {
         exit(1);
     }
     printf("%s opened successfully\n", configFile);
+
+    //.acl file checked/opened, change effective UID back to Bob
+    if(seteuid(RUID) != 0) {
+        perror("seteuid() error");
+        exit(1);
+    }
+    else {
+        printf("your effective user id was changed to %d\n", RUID);
+    }
 
     //Ensure that the opened .acl config file contains no invalid entries
     char line[FILELINE_SIZE];
@@ -195,21 +231,14 @@ int main(int argc, char *argv[]) {
     else {
         printf("File copying good to go!\n");
         fclose(fp);
-        
-        int EUID = (int) geteuid();
-        int RUID = (int) getuid();
-        int RGID = (int) getgid();
-        printf("your effective user id is %d\n", EUID);
-        printf("your real user id is %d\n", RUID);
-        printf("your real group id is: %d\n", RGID);
 
-        //Ensure that effective UID of user is set to real UID of file (UID of owner)
-        if(seteuid((int) geteuid()) != 0) {
+        //Ensure that effective UID of user is set to real UID of file owner (Alice)
+        if(seteuid(EUID) != 0) {
             perror("seteuid() error");
             exit(1);
         }
         else {
-            printf("your effective user id was changed to %d\n", (int) geteuid());
+            printf("your effective user id was changed to %d\n", EUID);
         }
         
         //Ensure that the filepath of the file to be copied is not a symbolic link
@@ -230,6 +259,15 @@ int main(int argc, char *argv[]) {
             exit(1);
         }
         printf("protected file %s opened successfully\n", protectedFile);
+
+        //protected file checked/opened, set the effective UID of the user back to original real UID of user (Bob)
+        if(seteuid(RUID) != 0) {
+            perror("seteuid() error");
+            exit(1);
+        }
+        else {
+            printf("your effective user id was changed to %d\n", RUID);
+        }
         
         //Copy file into local directory as specified copy file name
         FILE *copy = NULL;
@@ -257,15 +295,6 @@ int main(int argc, char *argv[]) {
         }
         fclose(fp);
         fclose(copy);
-
-        //Set the effective UID of the user back to original real UID of user (not owner of file)
-        if(seteuid(RUID) != 0) {
-            perror("seteuid() error");
-            exit(1);
-        }
-        else {
-            printf("your effective user id was changed back to %d\n", RUID);
-        }
 
         printf("file %s copied to %s successfully\n", protectedFile, cpFilepath);
     }
