@@ -20,8 +20,8 @@
 // Notes: 
 // sudo login kired
 // /home/erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/filecopy.haha filecopy.txt
-// test .acl symlink: ../erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/junklink filecopy.txt
-// test fileToBeCopy symlink: ../erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/junkk junkktest
+// test .acl symlink: /home/erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/junklink filecopy.txt
+// test fileToBeCopy symlink: /home/erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/junkk junkktest
 
 #include <stdio.h>
 #include <stdlib.h>
