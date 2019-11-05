@@ -19,8 +19,7 @@
 */
 // Notes: 
 // sudo login kired
-// ./scopy /home/erik/Documents/SetUID-File-Copy-System/filecopy.haha filecopy.txt
-// ../erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/filecopy.haha filecopy.txt
+// /home/erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/filecopy.haha filecopy.txt
 // test .acl symlink: ../erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/junklink filecopy.txt
 // test fileToBeCopy symlink: ../erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/junkk junkktest
 
@@ -230,7 +229,7 @@ int main(int argc, char *argv[]) {
     //Else the user has read/both permission to the file, commence copying of the file
     else {
         printf("File copying good to go!\n");
-        fclose(fp);
+        fclose(fp);  //Close fp to .acl config file
 
         //Ensure that effective UID of user is set to real UID of file owner (Alice)
         if(seteuid(EUID) != 0) {
@@ -294,9 +293,16 @@ int main(int argc, char *argv[]) {
             fprintf(copy, "%s", line);
         }
         fclose(fp);
+
+        //chmod newly copied file so only owner (Bob) has read/write access (protect from 3rd parties)
+        if(chmod(cpFilepath, S_IRUSR | S_IWUSR) != 0) {
+            perror("config file chmod error");
+            fclose(fp);
+            exit(1);
+        }
         fclose(copy);
 
-        printf("file %s copied to %s successfully\n", protectedFile, cpFilepath);
+        printf("file %s copied to %s successfully\n", protectedFile, cpFilepath);  
     }
     
     return(0);
