@@ -10,7 +10,8 @@ To configure my scopy system:
     As Alice (owner of protected file):
         -In the directory of the protected file, create a .acl configuration file by running:
             './addConfig protectedFile.txt' to create a blank config file in that directory OR
-            './addConfig protectedFile.txt erik r' to create/append specified user permission to a config file in that directory
+            './addConfig protectedFile.txt username permission' to create/append specified user permission to the config file in that directory
+            username must be alphanumeric characters, and permission must be r (read), w (write), or b (both).
             Both of the above commands will create 'protectedFile.txt.acl' with only owner access.
         -Place a copy of 'scopy' executable in Alice's public directory where Bob can access it,
          ensuring to run 'chmod u+s scopy' beforehand to set the seteuid bit on the executable so Bob can run it.
