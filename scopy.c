@@ -2,7 +2,7 @@
     SetUID File Transfer(copy) System
     CS 426                            
 
-    Allow a user to copy another user's files according to SetUID file permissions.
+    The purpose of this program is to allow a user to copy another user's files according to SetUID file permissions.
    
     If Alice wants to make her schedule available to Bob:
        - She places a copy of scopy in her public directory at /home/alice/public/scopy
