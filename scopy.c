@@ -6,7 +6,7 @@
    
     If Alice wants to make her schedule available to Bob:
        - She places a copy of scopy in her public directory at /home/alice/public/scopy
-       - Verifies that Bob will be able to access it
+       - Verifies that Bob will be able to access it via .acl configuration file
        - Sets the SetUID bit with 'chmod u+s scopy'
        - Create appropriate permission data so Bob can access her daily_schedule.txt
 
