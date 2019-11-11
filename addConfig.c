@@ -2,7 +2,14 @@
     SetUID File Transfer(copy) System
     CS 426                            
 
-    Adds a configuration file into the directory of the file being shared,
+    Given just a filepath of a protected file (2 command line args):
+    - Adds a configuration file into the directory of the protected file.
+    
+    Given a filepath, a username, and a valid permission r - read, w - write, b - both (4 command line args):
+    - Adds/appends the new username/permission into the configuration file (will create if doesn't already exist)
+      in the directory of the protected file.
+
+    Configuaration file is the same name as the protected file with a .acl attached, 
     identifies user access to the file and ensures that the file being shared
     exists and is only accessible by the owner.  
 */
