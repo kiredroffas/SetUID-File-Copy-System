@@ -296,7 +296,7 @@ int main(int argc, char *argv[]) {
 
         //chmod newly copied file so only owner (Bob) has read/write access (protect from 3rd parties)
         if(chmod(cpFilepath, S_IRUSR | S_IWUSR) != 0) {
-            perror("config file chmod error");
+            perror("copied file chmod error");
             fclose(fp);
             exit(1);
         }
