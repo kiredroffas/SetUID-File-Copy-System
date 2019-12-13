@@ -32,6 +32,7 @@ they have. Each line of the configuration file must begin with a username made o
 and then a 'r' (read), 'w' (write), or 'b' (both) permission, followed by a single '\n'. Incorrectly formatted .acl configuration
 files will not allow protected file copying to occur. Checks are also in place to ensure that .acl config files and protected 
 files are not symbolic links and are only regular files. The .acl files and newly copied protected files are also chmod'd so
-only the owner has read/write access to them.
+only the owner has read/write access to them. A DEBUG flag is also included to hide sensitive user information, as well as
+to see debugging information if needed.
 
 No third party library installations should be necessary for this system, short of a C compiler. 
