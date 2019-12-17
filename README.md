@@ -15,13 +15,13 @@ To configure my scopy system:
         -Place a copy of 'scopy' executable in Alice's public directory where Bob can access it,
          ensuring to run 'chmod u+s scopy' beforehand to set the seteuid bit on the executable so Bob can run it.
     
-    As Bob (person trying to copy protected file):
-        -From whereever in Bob's filesystem where he wants the protected file to be copied:
+As Bob (person trying to copy protected file):
+         -From whereever in Bob's filesystem where he wants the protected file to be copied:
          '/home/Alice/Public/scopy filepathOfProtectedFile.txt fileCopy.txt'
          where Bob is accessing the scopy executable in Alice's public directory, copying protected file
          'filepathOfProtectedFile.txt' into 'filecopy.txt' in Bob's current directory.
 
-         Another Example:
+Another Example:
          '/home/erik/Public/scopy /home/erik/Documents/SetUID-File-Copy-System/file.txt filecopy.txt'
          This copies erik's protected file 'file.txt' to 'filecopy.txt' in the user's current directory.
 
